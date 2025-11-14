@@ -110,14 +110,15 @@ jobs:
           script: |
             mkdir -p /data/ecosystem/sites
 
-      - name: Upload site manifests
+      - name: Upload sites manifests
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.TSBI_HOST }}
           username: ${{ secrets.TSBI_USER }}
           key: ${{ secrets.TSBI_SSH_KEY }}
-          source: sites/*.yml
+          source: sites/
           target: /data/ecosystem/sites/
+          strip_components: 1
 
       - name: Deploy to TSBI swarm
         uses: appleboy/ssh-action@v1.0.0
