@@ -27,3 +27,7 @@ site:
       enabled: true
       branch: dev
       domain: "dev-realtime.tsbi.fun"
+    preview:
+      enabled: true
+      branch: "*"
+      domain: "{branch}.realtime.tsbi.fun"

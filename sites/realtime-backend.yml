@@ -43,3 +43,9 @@ site:
       domain: "api.dev-realtime.tsbi.fun"
       environment_variables:
         - CORS_ORIGIN=https://dev-realtime.tsbi.fun,http://localhost:5173
+    preview:
+      enabled: true
+      branch: "*"
+      domain: "api.{branch}.realtime.tsbi.fun"
+      environment_variables:
+        - CORS_ORIGIN=https://{branch}.realtime.tsbi.fun
