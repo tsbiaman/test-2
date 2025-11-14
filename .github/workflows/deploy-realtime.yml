@@ -60,28 +60,29 @@ jobs:
             echo "SHORT_SHA=${SHORT_SHA}"
             echo "IMAGE_TAG=${SHORT_SHA}"
             echo "BRANCH_NAME=${BRANCH}"
+            echo "COMMIT_SHA=${GITHUB_SHA}"
           } >> "$GITHUB_ENV"
 
       - name: Build Docker images
         run: |
           docker build \
             --platform linux/amd64 \
-            -f backend/Dockerfile \
+            -f LOCAL_2/backend/Dockerfile \
             -t $REGISTRY/$IMAGE_NAME-backend:${SHORT_SHA} \
             -t $REGISTRY/$IMAGE_NAME-backend:${{ github.sha }} \
             -t $REGISTRY/$IMAGE_NAME-backend:latest \
-            ./backend
+            ./LOCAL_2/backend
 
           docker build \
             --platform linux/amd64 \
-            -f frontend/Dockerfile \
+            -f LOCAL_2/frontend/Dockerfile \
             --build-arg VITE_API_BASE_URL=${API_BASE_URL} \
             --build-arg VITE_WS_URL=${WS_URL} \
             --build-arg VITE_WS_PATH=/ws \
             -t $REGISTRY/$IMAGE_NAME-frontend:${SHORT_SHA} \
             -t $REGISTRY/$IMAGE_NAME-frontend:${{ github.sha }} \
             -t $REGISTRY/$IMAGE_NAME-frontend:latest \
-            ./frontend
+            ./LOCAL_2/frontend
 
       - name: Login to container registry
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
@@ -100,25 +101,35 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.TSBI_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy to TSBI swarm
+      - name: Ensure sites directory on VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.TSBI_HOST }}
           username: ${{ secrets.TSBI_USER }}
           key: ${{ secrets.TSBI_SSH_KEY }}
           script: |
-            set -euo pipefail
+            mkdir -p /data/ecosystem/sites
 
-            REGISTRY="${{ env.REGISTRY }}"
-            IMAGE_NAME="${{ env.IMAGE_NAME }}"
-            BACKEND_SITE_ID="${{ env.BACKEND_SITE_ID }}"
-            FRONTEND_SITE_ID="${{ env.FRONTEND_SITE_ID }}"
-            ENVIRONMENT="${{ env.ENVIRONMENT }}"
-            WEB_DOMAIN="${{ env.WEB_DOMAIN }}"
-            API_DOMAIN="${{ env.API_DOMAIN }}"
-            IMAGE_TAG="${{ env.IMAGE_TAG }}"
-            BRANCH_NAME="${{ env.BRANCH_NAME }}"
-            COMMIT_SHA="${{ github.sha }}"
+      - name: Upload site manifests
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.TSBI_HOST }}
+          username: ${{ secrets.TSBI_USER }}
+          key: ${{ secrets.TSBI_SSH_KEY }}
+          source: |
+            LOCAL_2/site/realtime-backend.yml
+            LOCAL_2/site/realtime-frontend.yml
+          target: /data/ecosystem/sites/
+
+      - name: Deploy to TSBI swarm
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.TSBI_HOST }}
+          username: ${{ secrets.TSBI_USER }}
+          key: ${{ secrets.TSBI_SSH_KEY }}
+          envs: REGISTRY,IMAGE_NAME,BACKEND_SITE_ID,FRONTEND_SITE_ID,ENVIRONMENT,WEB_DOMAIN,API_DOMAIN,IMAGE_TAG,BRANCH_NAME,COMMIT_SHA,WS_URL,API_BASE_URL,SHORT_SHA
+          script: |
+            set -euo pipefail
 
             echo "Deploying realtime messaging stack"
             echo "  Environment : ${ENVIRONMENT}"
