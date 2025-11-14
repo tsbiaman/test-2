@@ -67,22 +67,22 @@ jobs:
         run: |
           docker build \
             --platform linux/amd64 \
-            -f LOCAL_2/backend/Dockerfile \
+            -f backend/Dockerfile \
             -t $REGISTRY/$IMAGE_NAME-backend:${SHORT_SHA} \
             -t $REGISTRY/$IMAGE_NAME-backend:${{ github.sha }} \
             -t $REGISTRY/$IMAGE_NAME-backend:latest \
-            ./LOCAL_2/backend
+            ./backend
 
           docker build \
             --platform linux/amd64 \
-            -f LOCAL_2/frontend/Dockerfile \
+            -f frontend/Dockerfile \
             --build-arg VITE_API_BASE_URL=${API_BASE_URL} \
             --build-arg VITE_WS_URL=${WS_URL} \
             --build-arg VITE_WS_PATH=/ws \
             -t $REGISTRY/$IMAGE_NAME-frontend:${SHORT_SHA} \
             -t $REGISTRY/$IMAGE_NAME-frontend:${{ github.sha }} \
             -t $REGISTRY/$IMAGE_NAME-frontend:latest \
-            ./LOCAL_2/frontend
+            ./frontend
 
       - name: Login to container registry
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
@@ -117,8 +117,8 @@ jobs:
           username: ${{ secrets.TSBI_USER }}
           key: ${{ secrets.TSBI_SSH_KEY }}
           source: |
-            LOCAL_2/site/realtime-backend.yml
-            LOCAL_2/site/realtime-frontend.yml
+            site/realtime-backend.yml
+            site/realtime-frontend.yml
           target: /data/ecosystem/sites/
 
       - name: Deploy to TSBI swarm
