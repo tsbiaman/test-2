@@ -446,7 +446,7 @@ const App = () => {
     <div className="app-shell">
       <header className="app-header">
         <div>
-          <h1>Realtime Messaging Console</h1>
+          <h1>Feature branch Realtime Messaging Console</h1>
           <p className="subtitle">
             Observability dashboard for the REST and WebSocket messaging service.
           </p>
