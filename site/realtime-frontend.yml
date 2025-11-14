@@ -1,0 +1,29 @@
+site:
+  id: realtime-frontend
+  name: "Realtime Messaging Frontend"
+  github_repo: "https://github.com/tsbiaman/testing"
+  build:
+    context: "."
+    dockerfile: "frontend/Dockerfile"
+  defaults:
+    branch: main
+    domain_suffix: "tsbi.fun"
+    port: 80
+    replicas: 1
+    resources:
+      backend:
+        cpus: 0.25
+        memory: 256M
+  environments:
+    production:
+      enabled: true
+      branch: main
+      domain: "realtime.tsbi.fun"
+    staging:
+      enabled: true
+      branch: staging
+      domain: "staging-realtime.tsbi.fun"
+    development:
+      enabled: true
+      branch: dev
+      domain: "dev-realtime.tsbi.fun"

@@ -1,0 +1,137 @@
+name: Deploy Realtime Messaging
+
+on:
+  push:
+    branches: [main, dev, staging]
+  workflow_dispatch:
+
+env:
+  REGISTRY: registry.tsbi.fun
+  IMAGE_NAME: realtime-messaging
+  BACKEND_SITE_ID: realtime-backend
+  FRONTEND_SITE_ID: realtime-frontend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Derive deployment metadata
+        id: metadata
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          SHORT_SHA="${GITHUB_SHA::8}"
+
+          case "$BRANCH" in
+            main)
+              ENVIRONMENT="production"
+              WEB_DOMAIN="realtime.tsbi.fun"
+              ;;
+            dev)
+              ENVIRONMENT="development"
+              WEB_DOMAIN="dev-realtime.tsbi.fun"
+              ;;
+            staging)
+              ENVIRONMENT="staging"
+              WEB_DOMAIN="staging-realtime.tsbi.fun"
+              ;;
+            *)
+              ENVIRONMENT="preview"
+              SANITIZED=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | tr -c '[:alnum:]' '-')
+              WEB_DOMAIN="${SANITIZED}.realtime.tsbi.fun"
+              ;;
+          esac
+
+          API_DOMAIN="api.${WEB_DOMAIN}"
+          API_BASE_URL="https://${API_DOMAIN}"
+          WS_URL="wss://${API_DOMAIN}/ws"
+
+          {
+            echo "ENVIRONMENT=${ENVIRONMENT}"
+            echo "WEB_DOMAIN=${WEB_DOMAIN}"
+            echo "API_DOMAIN=${API_DOMAIN}"
+            echo "API_BASE_URL=${API_BASE_URL}"
+            echo "WS_URL=${WS_URL}"
+            echo "SHORT_SHA=${SHORT_SHA}"
+            echo "IMAGE_TAG=${SHORT_SHA}"
+            echo "BRANCH_NAME=${BRANCH}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build Docker images
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f backend/Dockerfile \
+            -t $REGISTRY/$IMAGE_NAME-backend:${SHORT_SHA} \
+            -t $REGISTRY/$IMAGE_NAME-backend:${{ github.sha }} \
+            -t $REGISTRY/$IMAGE_NAME-backend:latest \
+            ./backend
+
+          docker build \
+            --platform linux/amd64 \
+            -f frontend/Dockerfile \
+            --build-arg VITE_API_BASE_URL=${API_BASE_URL} \
+            --build-arg VITE_WS_URL=${WS_URL} \
+            --build-arg VITE_WS_PATH=/ws \
+            -t $REGISTRY/$IMAGE_NAME-frontend:${SHORT_SHA} \
+            -t $REGISTRY/$IMAGE_NAME-frontend:${{ github.sha }} \
+            -t $REGISTRY/$IMAGE_NAME-frontend:latest \
+            ./frontend
+
+      - name: Login to container registry
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+
+      - name: Push Docker images
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME-backend:${SHORT_SHA}
+          docker push $REGISTRY/$IMAGE_NAME-backend:${{ github.sha }}
+          docker push $REGISTRY/$IMAGE_NAME-backend:latest
+          docker push $REGISTRY/$IMAGE_NAME-frontend:${SHORT_SHA}
+          docker push $REGISTRY/$IMAGE_NAME-frontend:${{ github.sha }}
+          docker push $REGISTRY/$IMAGE_NAME-frontend:latest
+
+      - name: Add VPS host to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.TSBI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy to TSBI swarm
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.TSBI_HOST }}
+          username: ${{ secrets.TSBI_USER }}
+          key: ${{ secrets.TSBI_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            REGISTRY="${{ env.REGISTRY }}"
+            IMAGE_NAME="${{ env.IMAGE_NAME }}"
+            BACKEND_SITE_ID="${{ env.BACKEND_SITE_ID }}"
+            FRONTEND_SITE_ID="${{ env.FRONTEND_SITE_ID }}"
+            ENVIRONMENT="${{ env.ENVIRONMENT }}"
+            WEB_DOMAIN="${{ env.WEB_DOMAIN }}"
+            API_DOMAIN="${{ env.API_DOMAIN }}"
+            IMAGE_TAG="${{ env.IMAGE_TAG }}"
+            BRANCH_NAME="${{ env.BRANCH_NAME }}"
+            COMMIT_SHA="${{ github.sha }}"
+
+            echo "Deploying realtime messaging stack"
+            echo "  Environment : ${ENVIRONMENT}"
+            echo "  Branch      : ${BRANCH_NAME}"
+            echo "  Image tag   : ${IMAGE_TAG}"
+            echo "  Web domain  : ${WEB_DOMAIN}"
+            echo "  API domain  : ${API_DOMAIN}"
+
+            echo "Authenticating with registry"
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+
+            cd /data/ecosystem
+
+            ./scripts/deploy-from-registry.sh "$BACKEND_SITE_ID" "$ENVIRONMENT" "$API_DOMAIN" "$REGISTRY/$IMAGE_NAME-backend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA"
+
+            ./scripts/deploy-from-registry.sh "$FRONTEND_SITE_ID" "$ENVIRONMENT" "$WEB_DOMAIN" "$REGISTRY/$IMAGE_NAME-frontend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA"

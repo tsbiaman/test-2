@@ -1,0 +1,44 @@
+site:
+  id: realtime-backend
+  name: "Realtime Messaging Backend"
+  github_repo: "https://github.com/tsbiaman/testing"
+  build:
+    context: "."
+    dockerfile: "backend/Dockerfile"
+  defaults:
+    branch: main
+    domain_suffix: "tsbi.fun"
+    port: 4000
+    replicas: 1
+    resources:
+      backend:
+        cpus: 0.5
+        memory: 512M
+    environment_variables:
+      - WS_PATH=/ws
+      - HISTORY_LIMIT=200
+    secret_environment:
+      - variable: MESSAGE_SECRET_FILE
+        secret: realtime-message-secret
+    secret_files:
+      - name: realtime-message-secret
+        file: realtime-message-secret
+  environments:
+    production:
+      enabled: true
+      branch: main
+      domain: "api.realtime.tsbi.fun"
+      environment_variables:
+        - CORS_ORIGIN=https://realtime.tsbi.fun
+    staging:
+      enabled: true
+      branch: staging
+      domain: "api.staging-realtime.tsbi.fun"
+      environment_variables:
+        - CORS_ORIGIN=https://staging-realtime.tsbi.fun
+    development:
+      enabled: true
+      branch: dev
+      domain: "api.dev-realtime.tsbi.fun"
+      environment_variables:
+        - CORS_ORIGIN=https://dev-realtime.tsbi.fun,http://localhost:5173
