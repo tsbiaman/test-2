@@ -64,7 +64,6 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Build Docker images
-        working-directory: ./LOCAL_2
         run: |
           docker build \
             --platform linux/amd64 \
@@ -118,8 +117,8 @@ jobs:
           username: ${{ secrets.TSBI_USER }}
           key: ${{ secrets.TSBI_SSH_KEY }}
           source: |
-            LOCAL_2/site/realtime-backend.yml
-            LOCAL_2/site/realtime-frontend.yml
+            site/realtime-backend.yml
+            site/realtime-frontend.yml
           target: /data/ecosystem/sites/
 
       - name: Deploy to TSBI swarm
