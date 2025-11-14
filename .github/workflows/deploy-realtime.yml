@@ -116,9 +116,7 @@ jobs:
           host: ${{ secrets.TSBI_HOST }}
           username: ${{ secrets.TSBI_USER }}
           key: ${{ secrets.TSBI_SSH_KEY }}
-          source: |
-            site/realtime-backend.yml
-            site/realtime-frontend.yml
+          source: site/*.yml
           target: /data/ecosystem/sites/
 
       - name: Deploy to TSBI swarm
