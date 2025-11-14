@@ -17,6 +17,7 @@ site:
     environment_variables:
       - WS_PATH=/ws
       - HISTORY_LIMIT=200
+      - MESSAGE_SECRET=7CjK4Labzr6sQox2sYtpMXY7Sh63zH5e0oQSzkNkHbs=
     secret_environment:
       - variable: MESSAGE_SECRET_FILE
         secret: realtime-message-secret
