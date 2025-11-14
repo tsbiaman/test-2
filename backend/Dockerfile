@@ -20,7 +20,7 @@ RUN addgroup -g 1001 -S nodejs \
 
 USER appuser
 
-EXPOSE 4000
+# EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
