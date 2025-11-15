@@ -142,6 +142,6 @@ jobs:
 
             cd /data/ecosystem
 
-            ./scripts/deploy-from-registry.sh "$BACKEND_SITE_ID" "$ENVIRONMENT" "$API_DOMAIN" "$REGISTRY/$IMAGE_NAME-backend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA"
+            ./scripts/deploy-from-registry.sh "$BACKEND_SITE_ID" "$ENVIRONMENT" "$API_DOMAIN" "$REGISTRY/$IMAGE_NAME-backend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA" --wait true --timeout 180
 
-            ./scripts/deploy-from-registry.sh "$FRONTEND_SITE_ID" "$ENVIRONMENT" "$WEB_DOMAIN" "$REGISTRY/$IMAGE_NAME-frontend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA"
+            ./scripts/deploy-from-registry.sh "$FRONTEND_SITE_ID" "$ENVIRONMENT" "$WEB_DOMAIN" "$REGISTRY/$IMAGE_NAME-frontend:$IMAGE_TAG" --branch "$BRANCH_NAME" --commit "$COMMIT_SHA" --wait true --timeout 180
